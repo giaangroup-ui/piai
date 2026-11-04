@@ -3,7 +3,7 @@ window.PiPipeline=(()=>{
 async function run(B,camKey,{gen,check,charge,onStep=()=>{},max=3}={}){
  const m=PiMassing.render(B,B.cameras[camKey]);onStep({type:"massing",url:m.url});let emph=[],log=[];
  for(let a=1;a<=max;a++){const prompt=PiPrompt.build(B,camKey,emph);onStep({type:"prompt",a,prompt});
-  const img=await gen(prompt,m.url);if(!img){log.push({a,err:"no image"});continue}
+  let img;try{img=await gen(prompt,m.url)}catch(e){log.push({a,err:e.message});if(/429|limit:? ?0|billing|quota|403/i.test(e.message))return {ok:false,fatal:e.message,massing:m.url,log};continue}if(!img){log.push({a,err:"no image"});continue}
   const J=await check(PiVerify.SYS,PiVerify.ask(B),[img,m.url]);const sc=PiVerify.score(B,J,m.marks);log.push({a,sc});onStep({type:"check",a,img,sc,html:PiVerify.card(sc,a)});
   if(sc.pass){charge&&charge(a);return {ok:true,img,sc,massing:m.url,log}}
   emph=sc.rows.filter(r=>!r.ok).map(r=>r.fix)}
