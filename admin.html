@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PiAi – Quản trị</title><meta name="robots" content="noindex">
+<script src="config.js"></script>
+<style>:root{--bg:#0a0c10;--p:#12161e;--b:#262e3f;--t:#e8ebf1;--m:#97a1b4;--a:#f5a524}*{box-sizing:border-box}body{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--t)}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--b)}header b{color:var(--a);font-size:18px}.sp{flex:1}main{max-width:1200px;margin:0 auto;padding:16px}
+.card{background:var(--p);border:1px solid var(--b);border-radius:14px;padding:16px;margin-bottom:16px;overflow:auto}h2{margin:0 0 12px;font-size:17px}
+.st{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.st div{background:#0003;border-radius:10px;padding:12px}.st small{color:var(--m);display:block}.st b{font-size:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 8px;border-bottom:1px solid var(--b);text-align:left;white-space:nowrap}th{color:var(--m);font-weight:600}
+button,.btn{background:var(--a);color:#111;border:0;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer}button.g{background:#2a3242;color:var(--t)}button.r{background:#7f1d1d;color:#fff}
+input{background:var(--bg);border:1px solid var(--b);color:var(--t);border-radius:8px;padding:7px;font:inherit}.pos{color:#4ade80}.neg{color:#f87171}#msg{color:#f87171}
+#login{max-width:380px;margin:60px auto}#login input{width:100%;margin:6px 0}</style></head><body>
+<header><b>PiAi</b><span>Quản trị</span><span class="sp"></span><span id="who"></span><a href="./#/app" style="color:var(--a)">← App</a><button class="g" id="out" style="display:none" onclick="logout()">Đăng xuất</button></header>
+<main><p id="msg"></p>
+<div id="login" class="card" style="display:none"><h2>Đăng nhập quản trị</h2><input id="e" placeholder="Email"><input id="p" type="password" placeholder="Mật khẩu"><button onclick="login()" style="width:100%;margin-top:8px">Đăng nhập</button></div>
+<div id="app" style="display:none">
+<div class="card"><h2>📊 Doanh thu · Chi phí · Lợi nhuận</h2><div class="st" id="stats"></div></div>
+<div class="card"><h2>💳 Yêu cầu nạp xu chờ duyệt <button class="g" onclick="load()">↻</button></h2><p style="font-size:12px;color:var(--m)">Đối chiếu <b>nội dung chuyển khoản</b> và <b>số tiền</b> trong app ngân hàng, rồi bấm Duyệt.</p><div id="tops"></div></div>
+<div class="card"><h2>👥 Người dùng</h2><input id="q" placeholder="Tìm email..." oninput="renderUsers()"><div id="users"></div></div>
+<div class="card"><h2>📒 Sổ xu gần đây</h2><div id="ledger"></div></div>
+</div></main>
+<script>
+const $=id=>document.getElementById(id),C=window.PIAI_CONFIG||{},LS=localStorage;let cfg=Object.assign({},C);try{Object.assign(cfg,JSON.parse(LS.piai_srvcfg||"{}"))}catch(_){}
+const SB=String(cfg.SUPABASE_URL||"").replace(/\/+$/,""),AK=cfg.SUPABASE_ANON_KEY;let USERS=[];
+const vnd=n=>Math.round(+n||0).toLocaleString("vi-VN")+"đ",esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sess=()=>{try{return JSON.parse(LS.piai_sess||"null")}catch(_){return null}};
+async function auth(path,body){const r=await fetch(SB+"/auth/v1/"+path,{method:"POST",headers:{apikey:AK,"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error_description||j.msg||j.message||r.status);return j}
+async function tok(){let s=sess();if(!s)return null;if(s.expires_at-Date.now()<60000){try{const j=await auth("token?grant_type=refresh_token",{refresh_token:s.refresh_token});s={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,email:j.user?.email||s.email};LS.piai_sess=JSON.stringify(s)}catch(e){LS.removeItem("piai_sess");return null}}return s.access_token}
+async function rest(path,o={}){const t=await tok();const r=await fetch(SB+"/rest/v1/"+path,{...o,headers:{apikey:AK,Authorization:"Bearer "+t,"Content-Type":"application/json",...(o.headers||{})}});const j=await r.json().catch(()=>null);if(!r.ok)throw new Error(j?.message||("HTTP "+r.status));return j}
+const rpc=(fn,a)=>rest("rpc/"+fn,{method:"POST",body:JSON.stringify(a||{})});
+async function login(){try{const j=await auth("token?grant_type=password",{email:$("e").value.trim(),password:$("p").value});LS.piai_sess=JSON.stringify({access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,email:j.user?.email});init()}catch(e){$("msg").textContent=e.message}}
+function logout(){LS.removeItem("piai_sess");location.reload()}
+async function load(){$("msg").textContent="";
+  const [st,tp,us,lg]=await Promise.all([rpc("admin_stats"),rest("topup_requests?select=*&order=created_at.desc&limit=200"),rest("profiles?select=*&order=created_at.desc&limit=1000"),rest("xu_ledger?select=*&order=created_at.desc&limit=200")]);
+  USERS=us;const em=id=>(us.find(u=>u.id==id)||{}).email||id.slice(0,8);
+  $("stats").innerHTML=[["Doanh thu (đã duyệt)",vnd(st.revenue_vnd)],["Chi phí API thật",vnd(st.cost_vnd)+` <small>$${(+st.cost_usd).toFixed(2)}</small>`],["Lợi nhuận",`<span class="${st.profit_vnd>=0?"pos":"neg"}">${vnd(st.profit_vnd)}</span>`],["Người dùng",st.users],["Xu đã dùng",(+st.xu_spent).toLocaleString("vi-VN")],["Xu còn trong ví",(+st.xu_outstanding).toLocaleString("vi-VN")],["Chờ duyệt",st.pending_topups]].map(([a,b])=>`<div><small>${a}</small><b>${b}</b></div>`).join("");
+  const pend=tp.filter(t=>t.status=="pending");
+  $("tops").innerHTML=pend.length?`<table><tr><th>Thời gian</th><th>Email</th><th>Gói</th><th>Số tiền</th><th>Xu</th><th>Nội dung CK</th><th></th></tr>${pend.map(t=>`<tr><td>${new Date(t.created_at).toLocaleString("vi-VN")}</td><td>${esc(em(t.user_id))}</td><td>${esc(t.pack)}</td><td><b>${vnd(t.amount_vnd)}</b></td><td>${(+t.xu).toLocaleString("vi-VN")}</td><td><b style="color:var(--a)">${esc(t.transfer_note)}</b></td><td><button onclick="approve(${t.id},true)">✓ Duyệt</button> <button class="r" onclick="approve(${t.id},false)">✕ Từ chối</button></td></tr>`).join("")}</table>`:"<p style='color:var(--m)'>Không có yêu cầu chờ duyệt.</p>";
+  renderUsers();
+  $("ledger").innerHTML=`<table><tr><th>Thời gian</th><th>Email</th><th>Lý do</th><th>Model</th><th>Xu</th><th>Số dư</th><th>Chi phí USD</th></tr>${lg.map(l=>`<tr><td>${new Date(l.created_at).toLocaleString("vi-VN")}</td><td>${esc(em(l.user_id))}</td><td>${esc(l.reason)}</td><td>${esc(l.model||"")}</td><td class="${l.delta<0?"neg":"pos"}">${l.delta>0?"+":""}${l.delta}</td><td>${l.balance_after}</td><td>${(+l.real_cost_usd).toFixed(4)}</td></tr>`).join("")}</table>`}
+function renderUsers(){const q=($("q").value||"").toLowerCase();$("users").innerHTML=`<table><tr><th>Email</th><th>Vai trò</th><th>Số dư (xu)</th><th>Ngày tạo</th><th>Điều chỉnh xu</th></tr>${USERS.filter(u=>(u.email||"").toLowerCase().includes(q)).map(u=>`<tr><td>${esc(u.email)}</td><td>${u.role}</td><td><b>${(+u.xu_balance).toLocaleString("vi-VN")}</b></td><td>${new Date(u.created_at).toLocaleDateString("vi-VN")}</td><td><input id="d_${u.id}" type="number" placeholder="+/- xu" style="width:90px"> <input id="r_${u.id}" placeholder="lý do" style="width:120px"> <button class="g" onclick="adjust('${u.id}')">Lưu</button></td></tr>`).join("")}</table>`}
+async function approve(id,ok){if(!confirm(ok?"Xác nhận đã nhận đủ tiền và cộng xu?":"Từ chối yêu cầu này?"))return;try{await rpc("admin_approve_topup",{p_id:id,p_approve:ok});load()}catch(e){$("msg").textContent=e.message}}
+async function adjust(uid){const d=parseInt($("d_"+uid).value,10);if(!d)return;try{await rpc("admin_adjust_xu",{p_user:uid,p_delta:d,p_reason:$("r_"+uid).value||""});load()}catch(e){$("msg").textContent=e.message}}
+async function init(){if(!SB||!AK){$("msg").textContent="Chưa cấu hình máy chủ (config.js). Xem SETUP.md.";return}
+  const t=await tok();if(!t){$("login").style.display="";return}$("login").style.display="none";$("out").style.display="";$("who").textContent=sess()?.email||"";
+  try{const ok=await rpc("is_admin");if(!ok){$("msg").textContent="Tài khoản này không có quyền quản trị.";return}$("app").style.display="";await load()}catch(e){$("msg").textContent=e.message}}
+init();
+</script></body></html>
