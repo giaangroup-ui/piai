@@ -8,7 +8,7 @@ function score(B,J,marks,tol=.03){B=PiBrief.resolve(B);const R=[];const add=(k,o
  let dmax=0;for(const v of B.volumes){const a=marks.vol[v.id],b=(J.bbox||{})[v.id];if(!b){dmax=1;continue}for(const k of["l","r","t","b"])dmax=Math.max(dmax,Math.abs(a[k]-b[k]))}
  add("geom",dmax<=tol*2,`Lệch khối so với dựng khối: ${(dmax*100).toFixed(1)}%`,"match massing silhouette and proportions exactly");
  const dh=Math.abs((J.horizon??-1)-marks.horizon);add("cam",J.camera_same&&dh<=tol,`Camera/đường chân trời lệch ${(dh*100).toFixed(1)}%`,"keep identical camera and horizon");
- const s=J.site||{};add("site",s.carpark&&s.pond&&s.islands&&s.streets_corner,"Khu đất: "+["carpark","pond","islands","streets_corner"].map(k=>(s[k]?"✓":"✗")+k).join(" "),"keep car park, pond, islands, street corner in place");
+ const s=J.site||{};add("site",s.carpark&&s.pond&&s.islands&&s.streets_corner,"Khu đất: "+[["carpark","bãi xe"],["pond","hồ nước"],["islands","đảo cây"],["streets_corner","ngã đường"]].map(([k,l])=>(s[k]?"✓ ":"✗ ")+l).join(" · "),"keep car park, pond, islands, street corner in place");
  add("clean",!J.text_or_outlines,"Không còn viền/chữ của ảnh khối","remove outlines and text");
  add("style",J.style_ok,"Phong cách đúng mô tả","apply style materials");
  return {pass:R.every(r=>r.ok),rows:R,notes:J.notes||""}}
