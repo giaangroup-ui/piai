@@ -1399,6 +1399,45 @@ let HF=0;{const _h=histR;histR=function(){_h();const L_=$("histL");if(!L_)return
 })();
 
 $("lsW").outerHTML=LANG_SEL;$("lsL").outerHTML=LANG_SEL;document.querySelectorAll(".langSel").forEach(x=>x.value=LANG);landing();cred();histR();if(S.piai_theme){document.body.classList.add("light");$("thm").textContent="☀️"}$("wlogo").innerHTML=document.querySelector("header .logo").innerHTML.replace(/id="lg"/g,'id="lg2"').replace(/url\(#lg\)/g,"url(#lg2)");addEventListener("hashchange",route);route();trStart();if(S.piai_key)discover().catch(e=>console.warn(e));document.addEventListener("click",e=>{if(!e.target.closest(".pop")&&!e.target.closest(".ib")&&!e.target.closest(".av"))document.querySelectorAll(".pop").forEach(p=>p.classList.remove("on"))});
+
+/* ===== v16: GPT Image routing, Gemini→OpenAI fallback, robust auto-prompt ===== */
+let OIM_LIST=null;
+async function oImgModels(){if(OIM_LIST)return OIM_LIST;let l=[];try{const r=await fetch("https://api.openai.com/v1/models",{headers:{"Authorization":"Bearer "+S.piai_okey}});if(r.ok){const j=await r.json();l=(j.data||[]).map(x=>x.id).filter(x=>/image/i.test(x)).sort().reverse()}}catch(_){}
+OIM_LIST=[...new Set([GPT_IMG_M(),"gpt-image-2.5-flare",...l])];return OIM_LIST}
+const dataBlob=d=>{const s=/^data:/.test(d)?d:"data:image/jpeg;base64,"+b64(d);const [h,b]=s.split(",");const mt=(h.match(/data:([^;]+)/)||[])[1]||"image/jpeg";const bin=atob(b);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:mt})};
+function oErr(st,j){const m=j&&j.error&&j.error.message||"";const e=new Error("GPT Image: "+oErrVN(st,m)+(m?" – "+m:""));e.status=st;e.raw=m;return e}
+async function gptReq(m,prompt,img,ratio,extra){const k=S.piai_okey;const t=W[wTool],q=t&&QL(t);const qi=q?tierOf(t):1;const ims=[img,...(extra||[])].filter(Boolean);
+const base={model:m,prompt,n:1,quality:qi>=2?"high":"medium",size:gptSize(ratio,qi)};const url="https://api.openai.com/v1/images/"+(ims.length?"edits":"generations");
+let r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify(ims.length?{...base,output_format:"jpeg",images:ims.map(i=>({image_url:/^data:/.test(i)?i:"data:image/jpeg;base64,"+b64(i)}))}:{...base,output_format:"jpeg"})});
+let j=await r.json().catch(()=>({}));
+if(!r.ok&&r.status==400&&ims.length){const fd=new FormData();for(const[a,b]of Object.entries(base))fd.append(a,String(b));ims.forEach((i,n)=>fd.append("image[]",dataBlob(i),"img"+n+".jpg"));
+  r=await fetch(url,{method:"POST",headers:{"Authorization":"Bearer "+k},body:fd});j=await r.json().catch(()=>({}))}
+if(!r.ok)throw oErr(r.status,j);const d=j.data&&j.data[0];if(!d||!(d.b64_json||d.url))throw new Error(tr("GPT Image không trả về ảnh"));LAST_IMG_M=m;
+return d.b64_json?"data:image/"+(j.output_format||"jpeg")+";base64,"+d.b64_json:d.url}
+async function gptChain(prompt,img,ratio,extra){if(!S.piai_okey){const e=new Error("GPT Image: "+tr("Chưa có OpenAI API key")+" (⚙)");e.status=401;throw e}
+let last;for(const m of await oImgModels()){try{return await gptReq(m,prompt,img,ratio,extra)}catch(e){last=e;console.warn("[PiAi] GPT Image",m,e.status,e.message);if(e.status==401||(e.status==429&&/quota|billing/i.test(e.raw||"")))break}}throw last}
+const GEM_BILL=e=>e&&(e.status==429||/429|billing|quota|RESOURCE_EXHAUSTED|free[ _-]?tier|hết hạn mức|thanh toán/i.test(e.message||""));
+let GPT_NOTE="";
+{const _c=callImage;callImage=async function(prompt,img,ratio,size,extra){
+  if(isGptM(FORCE_IMG||wModel)){let u;try{u=await gptChain(imgTask(prompt,!!img),img,ratio,extra)}catch(e){e.q0=1;e.status=e.status||500;throw e}if(IMG_LOG)IMG_LOG.push(LAST_IMG_M);return u}
+  try{return await _c(prompt,img,ratio,size,extra)}catch(e){if(!GEM_BILL(e)||!S.piai_okey)throw e;console.warn("[PiAi] Gemini billing → GPT Image",e.message);
+    const u=await gptChain(imgTask(prompt,!!img),img,ratio,extra);if(IMG_LOG)IMG_LOG.push(LAST_IMG_M);GPT_NOTE=tr("Gemini lỗi billing/hạn mức, đã tự chuyển sang GPT Image")+" ("+LAST_IMG_M+")";return u}}}
+{const _w=wrun;wrun=async function(){GPT_NOTE="";GPT_FB="";await _w();if(GPT_NOTE&&wres)wmsg("ℹ "+GPT_NOTE,1)}}
+/* analysis: no filler, realistic materials for drawings */
+const FILLER_RX=/(chưa|không)\s*(được\s*)?(xác định|thể hiện|rõ( ràng)?|có thông tin|nhìn thấy|xác định được)|^\s*(không|none|n\/a|unknown|not (visible|specified|shown|clear)|unclear|未知|不明|无)\s*$|unknown|not visible|not specified|undetermined|未确定|无法确定/i;
+const ANA_RULES=`\nRULES: If a field cannot be determined from the image, return "" (empty string) – NEVER write filler such as "chưa xác định", "không thể hiện", "không rõ", "unknown", "not visible". If the input is a sketch, CAD drawing, floor plan or untextured/white 3D model, the line, hatch, annotation and layer colours of the drawing are NOT real colours: for "facade_materials" and "colours" PROPOSE realistic, fitting real-world materials and a harmonious colour palette suited to the building type and style (e.g. sơn trắng ấm, đá granite xám, gỗ óc chó, kính low-e); for "style" propose the most plausible style; for "light" use a pleasant realistic daylight if none is shown.`;
+{const _a=analyzeImg;analyzeImg=async function(img){const _j=callTextJ;callTextJ=(s,t,i)=>_j(s,t+ANA_RULES,i);let a;try{a=await _a(img)}finally{callTextJ=_j}
+  for(const k in a)if(typeof a[k]=="string"&&FILLER_RX.test(a[k]))a[k]="";if(a.colours&&/(đường nét|nét vẽ|line|layer|cad|hatch|màu đỏ, màu xanh lá, màu xanh dương)/i.test(a.colours))a.colours="";return a}}
+{const _cr=composeRender;composeRender=function(a){const p=_cr(a);return String(p).split(/,\s*|，/).filter(x=>!FILLER_RX.test(x)).join(LANG=="zh"?"，":", ")}}
+{const _m=callTextM;callTextM=(sy,t,i)=>_m(/OPZEN style/.test(sy)?sy+` Never write filler like "chưa xác định", "không thể hiện", "không rõ", "unknown" – omit anything unknown. On drawings/CAD/plans ignore line & annotation colours; propose realistic materials and colours instead.`:sy,t,i)}
+const deFill=p=>String(p||"").split(/,\s*/).filter(x=>!FILLER_RX.test(x)).join(", ");
+/* auto-prompt: single-flight, wait for image, retry if only default text */
+let AUTO_RUN=null;
+{const _d=doAuto;doAuto=async function(force){if(AUTO_RUN)return AUTO_RUN;const b=$("wauto");if(b)b.disabled=true;
+  AUTO_RUN=(async()=>{for(let i=0;i<40&&!srcImg()&&document.querySelector("#wsrc img, .drop img");i++)await zz(100);
+    const isDef=p=>{const x=String(p||"").trim();if(!x)return true;const t=W[wTool];const ds=[seedText(),dispText(),tr(t.p?t.p(wo):"")].map(s=>String(s||"").trim()).filter(Boolean);return ds.some(d=>x==d||x.startsWith(d)&&x.length<d.length+120&&!VAN)};
+    let p=await _d(force);if(p&&$("wp")&&FILLER_RX.test(p)){p=deFill(p);$("wp").value=p}if(srcImg()&&(S.piai_key||S.piai_okey||document.body.classList.contains("srv"))&&isDef(p)){console.info("[PiAi] auto-prompt returned default → retry");VAN=null;await zz(300);p=await _d(force)}return p})();
+  try{return await AUTO_RUN}finally{AUTO_RUN=null;if(b)b.disabled=false}}}
 </script><script>/* Tự động cập nhật phiên bản mới (version.json) */
 (()=>{const CUR=(document.querySelector('meta[name="app-version"]')||{}).content||"dev";window.APP_VERSION=CUR;
 const T={vi:["Có bản mới","Cập nhật"],en:["New version available","Update"],zh:["有新版本","更新"]};
