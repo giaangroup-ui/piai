@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><script src="config.js"></script><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0a0c10"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="PiAi"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="app-version" content="__APP_VERSION__"><script src="config.js?v=__APP_VERSION__"></script><link rel="manifest" href="manifest.webmanifest?v=__APP_VERSION__"><meta name="theme-color" content="#0a0c10"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="PiAi"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PiAi – Nền tảng AI cho Kiến trúc & Nội thất</title>
 <style>
 :root{--bg:#0a0c10;--p:#12161e;--p2:#1a2030;--b:#262e3f;--t:#e8ebf1;--m:#97a1b4;--a:#f5a524;--a2:#ff7a3d}
@@ -1212,7 +1212,12 @@ Object.assign(I18N,{"GPT Image (OpenAI)":["GPT Image (OpenAI)","GPT Image（Open
 Object.assign(I18N,{"Nâng cao":["Advanced","高级"],"Nhanh":["Fast","快速"],"Cao cấp":["Premium","高级版"],"Bật nhà cung cấp video nâng cao (Seedance, Kling, MiniMax, Wan)":["Enable advanced video providers (Seedance, Kling, MiniMax, Wan)","启用高级视频提供商（Seedance、Kling、MiniMax、Wan）"],
 "Nhanh: Nano Banana – nhanh, tiết kiệm (mặc định, tự chọn model tốt nhất). Cao cấp: Nano Pro – chi tiết hơn. GPT Image: OpenAI.":["Fast: Nano Banana – quick and cheap (default, picks the best model automatically). Premium: Nano Pro – more detail. GPT Image: OpenAI.","快速：Nano Banana——快速、省钱（默认，自动选择最佳模型）。高级版：Nano Pro——细节更丰富。GPT Image：OpenAI。"]});
 Object.assign(I18N,{"📲 Cài app":["📲 Install app","📲 安装应用"],"Nhấn Chia sẻ → Thêm vào MH chính":["Tap Share → Add to Home Screen","点击 分享 → 添加到主屏幕"]});/*v13 PWA*/(function(){let dp=null;const b=$("instB"),ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform=="MacIntel"&&navigator.maxTouchPoints>1),sa=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
-if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js",{scope:"./"}).catch(e=>console.warn(e)));
+(()=>{let n=0;const F=window.fetch;window.fetch=function(i,o){let x=false;try{x=new URL(typeof i=="string"?i:i.url,location.href).origin!==location.origin}catch(e){}if(!x)return F.apply(this,arguments);n++;return F.apply(this,arguments).finally(()=>n--)};
+window.AU_LANG=()=>{try{return LANG}catch(e){return localStorage.piai_lang||"vi"}};
+window.AU_STATE=()=>{if(n>0||document.querySelector(".spin.on"))return"busy";/* đang render: không bao giờ tải lại */
+ const a=document.activeElement;if(a&&/^(TEXTAREA|INPUT)$/.test(a.tagName)&&a.type!="password"&&a.value)return"work";
+ if([...document.images].some(i=>i.src&&!i.src.startsWith(location.origin)&&i.naturalWidth>160&&i.offsetParent))return"work";/* có ảnh tải lên / kết quả render chưa lưu */
+ return"idle"}})();
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();dp=e;b.style.display=""});
 addEventListener("appinstalled",()=>{dp=null;b.style.display="none"});
 if(ios&&!sa)b.style.display="";
@@ -1277,4 +1282,26 @@ if(SRV){
   srvCfg();srvRefresh();setTimeout(srvUI,0);
 }
 $("lsW").outerHTML=LANG_SEL;$("lsL").outerHTML=LANG_SEL;document.querySelectorAll(".langSel").forEach(x=>x.value=LANG);landing();cred();histR();if(S.piai_theme){document.body.classList.add("light");$("thm").textContent="☀️"}$("wlogo").innerHTML=document.querySelector("header .logo").innerHTML.replace(/id="lg"/g,'id="lg2"').replace(/url\(#lg\)/g,"url(#lg2)");addEventListener("hashchange",route);route();trStart();if(S.piai_key)discover().catch(e=>console.warn(e));document.addEventListener("click",e=>{if(!e.target.closest(".pop")&&!e.target.closest(".ib")&&!e.target.closest(".av"))document.querySelectorAll(".pop").forEach(p=>p.classList.remove("on"))});
-</script></body></html>
+</script><script>/* Tự động cập nhật phiên bản mới (version.json) */
+(()=>{const CUR=(document.querySelector('meta[name="app-version"]')||{}).content||"dev";window.APP_VERSION=CUR;
+const T={vi:["Có bản mới","Cập nhật"],en:["New version available","Update"],zh:["有新版本","更新"]};
+try{const u=new URL(location.href);if(u.searchParams.has("v")){u.searchParams.delete("v");history.replaceState(history.state,"",u.pathname+u.search+u.hash)}}catch(e){}
+let pending=null;
+const st=()=>{try{return window.AU_STATE?AU_STATE():"idle"}catch(e){return"idle"}};
+const lang=()=>{try{const l=(window.AU_LANG?AU_LANG():document.documentElement.lang||"vi").slice(0,2);return T[l]?l:"vi"}catch(e){return"vi"}};
+function apply(){if(!pending)return;try{window.AU_BEFORE&&AU_BEFORE()}catch(e){}sessionStorage.auTried=pending;const u=new URL(location.href);u.searchParams.set("v",pending);location.replace(u.toString())}
+function toast(){let d=document.getElementById("auT");const t=T[lang()];if(!d){d=document.createElement("div");d.id="auT";d.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom));z-index:2147483000;background:#111a;backdrop-filter:blur(6px);color:#fff;border:1px solid #fff3;border-radius:999px;padding:8px 8px 8px 16px;display:flex;gap:10px;align-items:center;font:600 14px system-ui,sans-serif;box-shadow:0 6px 24px #0008";
+ d.innerHTML='<span></span><button style="background:#ffc800;color:#000;border:0;border-radius:999px;padding:7px 14px;font-weight:700;cursor:pointer"></button>';d.querySelector("button").onclick=()=>{if(st()=="busy"){d.querySelector("span").textContent="⏳ "+t[0]}else apply()};document.body.appendChild(d)}
+ d.querySelector("span").textContent="🔄 "+t[0];d.querySelector("button").textContent=t[1]}
+window.AU_TRY=()=>{if(!pending)return false;const s=st();if(s=="idle"){apply();return true}if(s=="work")toast();return false};
+window.AU_PENDING=()=>!!pending;
+async function check(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const j=await r.json();
+ if(!j.v||j.v===CUR||CUR==="dev"||CUR.startsWith("__"))return;
+ if(sessionStorage.auTried===j.v&&!pending){pending=null;return}/* tránh vòng lặp nếu CDN còn trả bản cũ */
+ if(pending!==j.v){pending=j.v;if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js?v="+j.v,{scope:"./"}).catch(()=>{})}
+ AU_TRY()}catch(e){}}
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js?v="+CUR,{scope:"./"}).catch(()=>{}));
+setTimeout(check,2500);setInterval(check,5*60*1000);setInterval(()=>{if(pending)AU_TRY()},3000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check()});addEventListener("focus",check);addEventListener("online",check);
+})();</script>
+</body></html>

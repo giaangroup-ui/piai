@@ -1,8 +1,10 @@
-const C="piai-v14",SHELL=["./","./index.html","./manifest.webmanifest","./config.js","./icons/icon-192.png","./icons/icon-512.png","./icons/apple-touch-icon.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(SHELL)));self.skipWaiting()});
+// Cache theo phiên bản: sw.js?v=<commit>. Không bao giờ chạm vào API/bên thứ ba.
+const V=new URL(self.location).searchParams.get("v")||"dev",C="piai-"+V,SHELL=["./","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png","./icons/apple-touch-icon.png"];
+self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>Promise.all(SHELL.map(u=>fetch(u,{cache:"reload"}).then(r=>r.ok&&c.put(u,r)).catch(()=>{})))))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{const r=e.request,u=new URL(r.url);
- if(r.method!=="GET"||u.origin!==location.origin)return; // never touch API/3rd-party (google, openai, anthropic, proxies...)
- if(r.mode==="navigate"||u.pathname.endsWith("/")||u.pathname.endsWith(".html")||u.pathname.endsWith("config.js")){
-  e.respondWith(fetch(r).then(res=>{const cp=res.clone();caches.open(C).then(c=>c.put(r,cp));return res}).catch(()=>caches.match(r).then(m=>m||caches.match("./index.html"))));return}
+ if(r.method!=="GET"||u.origin!==location.origin)return;
+ const fresh=r.mode==="navigate"||/\/$|\.html$|\.js$|\.json$|\.webmanifest$/.test(u.pathname);
+ if(fresh){e.respondWith(fetch(r,{cache:"no-store"}).then(res=>{if(res.ok&&!u.pathname.endsWith("version.json")){const cp=res.clone();caches.open(C).then(c=>c.put(r,cp))}return res})
+  .catch(()=>caches.match(r,{ignoreSearch:true}).then(m=>m||caches.match("./"))));return}
  e.respondWith(caches.match(r).then(m=>m||fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(C).then(c=>c.put(r,cp))}return res})))});

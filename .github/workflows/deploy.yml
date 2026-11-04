@@ -1,0 +1,24 @@
+name: Deploy PiAi
+on:
+  push: {branches: [main]}
+  workflow_dispatch:
+permissions: {contents: read, pages: write, id-token: write}
+concurrency: {group: pages, cancel-in-progress: true}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: {name: github-pages, url: "${{ steps.d.outputs.page_url }}"}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build + ghi phiên bản
+        run: |
+          V=${GITHUB_SHA::12}
+          mkdir _site && cp -r $(ls -A | grep -v -E '^(\.git|\.github|_site)$') _site/
+          sed -i "s/__APP_VERSION__/$V/g" _site/index.html
+          echo "{\"v\":\"$V\",\"built\":\"$(date -u +%FT%TZ)\"}" > _site/version.json
+          cat _site/version.json; ls _site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: _site}
+      - id: d
+        uses: actions/deploy-pages@v4
