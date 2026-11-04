@@ -1401,19 +1401,27 @@ let HF=0;{const _h=histR;histR=function(){_h();const L_=$("histL");if(!L_)return
 $("lsW").outerHTML=LANG_SEL;$("lsL").outerHTML=LANG_SEL;document.querySelectorAll(".langSel").forEach(x=>x.value=LANG);landing();cred();histR();if(S.piai_theme){document.body.classList.add("light");$("thm").textContent="☀️"}$("wlogo").innerHTML=document.querySelector("header .logo").innerHTML.replace(/id="lg"/g,'id="lg2"').replace(/url\(#lg\)/g,"url(#lg2)");addEventListener("hashchange",route);route();trStart();if(S.piai_key)discover().catch(e=>console.warn(e));document.addEventListener("click",e=>{if(!e.target.closest(".pop")&&!e.target.closest(".ib")&&!e.target.closest(".av"))document.querySelectorAll(".pop").forEach(p=>p.classList.remove("on"))});
 
 /* ===== v16: GPT Image routing, Gemini→OpenAI fallback, robust auto-prompt ===== */
+const gptSizeBig=gptSize;
+function oSize(ratio){const [a,b]=(ratio||"1:1").split(":").map(Number);const r=a/b||1;return Math.abs(r-1)<.08?"1024x1024":r>1?"1536x1024":"1024x1536"}
+gptSize=(ratio)=>oSize(ratio);
+async function fitRatio(src,ratio){try{const [a,b]=(ratio||"").split(":").map(Number);if(!a||!b)return src;const im=await new Promise((ok,no)=>{const i=new Image();i.crossOrigin="anonymous";i.onload=()=>ok(i);i.onerror=no;i.src=src});
+const R=a/b,r=im.width/im.height;if(Math.abs(r-R)/R<.03)return src;let w=im.width,h=im.height;if(r>R)w=Math.round(h*R);else h=Math.round(w/R);
+const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(im,(im.width-w)/2,(im.height-h)/2,w,h,0,0,w,h);return c.toDataURL("image/jpeg",.94)}catch(_){return src}}
+{const _o=openSet;openSet=function(){_o();const v=(document.querySelector('meta[name=app-version]')||{}).content||"dev";const d=$("dlg");let e=$("appVer");if(!e){e=document.createElement("div");e.id="appVer";e.style.cssText="font-size:11px;color:var(--m);text-align:right;margin-top:8px;opacity:.75";d.appendChild(e)}e.textContent="PiAi v"+String(v).slice(0,12)}}
 let OIM_LIST=null;
 async function oImgModels(){if(OIM_LIST)return OIM_LIST;let l=[];try{const r=await fetch("https://api.openai.com/v1/models",{headers:{"Authorization":"Bearer "+S.piai_okey}});if(r.ok){const j=await r.json();l=(j.data||[]).map(x=>x.id).filter(x=>/image/i.test(x)).sort().reverse()}}catch(_){}
 OIM_LIST=[...new Set([GPT_IMG_M(),"gpt-image-2.5-flare",...l])];return OIM_LIST}
 const dataBlob=d=>{const s=/^data:/.test(d)?d:"data:image/jpeg;base64,"+b64(d);const [h,b]=s.split(",");const mt=(h.match(/data:([^;]+)/)||[])[1]||"image/jpeg";const bin=atob(b);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:mt})};
 function oErr(st,j){const m=j&&j.error&&j.error.message||"";const e=new Error("GPT Image: "+oErrVN(st,m)+(m?" – "+m:""));e.status=st;e.raw=m;return e}
 async function gptReq(m,prompt,img,ratio,extra){const k=S.piai_okey;const t=W[wTool],q=t&&QL(t);const qi=q?tierOf(t):1;const ims=[img,...(extra||[])].filter(Boolean);
-const base={model:m,prompt,n:1,quality:qi>=2?"high":"medium",size:gptSize(ratio,qi)};const url="https://api.openai.com/v1/images/"+(ims.length?"edits":"generations");
-let r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify(ims.length?{...base,output_format:"jpeg",images:ims.map(i=>({image_url:/^data:/.test(i)?i:"data:image/jpeg;base64,"+b64(i)}))}:{...base,output_format:"jpeg"})});
-let j=await r.json().catch(()=>({}));
-if(!r.ok&&r.status==400&&ims.length){const fd=new FormData();for(const[a,b]of Object.entries(base))fd.append(a,String(b));ims.forEach((i,n)=>fd.append("image[]",dataBlob(i),"img"+n+".jpg"));
+const sizes=[...new Set([...(qi>=2?[gptSizeBig(ratio,qi)]:[]),oSize(ratio),"auto"])];let base;const url="https://api.openai.com/v1/images/"+(ims.length?"edits":"generations");
+let r,j;for(const sz of sizes){base={model:m,prompt,n:1,quality:qi>=2?"high":"medium",size:sz};r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify(ims.length?{...base,output_format:"jpeg",images:ims.map(i=>({image_url:/^data:/.test(i)?i:"data:image/jpeg;base64,"+b64(i)}))}:{...base,output_format:"jpeg"})});
+j=await r.json().catch(()=>({}));
+if(!r.ok&&r.status==400&&ims.length&&!/size/i.test(j.error?.message||"")){const fd=new FormData();for(const[a,b]of Object.entries(base))fd.append(a,String(b));ims.forEach((i,n)=>fd.append("image[]",dataBlob(i),"img"+n+".jpg"));
   r=await fetch(url,{method:"POST",headers:{"Authorization":"Bearer "+k},body:fd});j=await r.json().catch(()=>({}))}
+if(r.ok||!(r.status==400&&/size/i.test(j.error?.message||"")))break;console.warn("[PiAi] GPT size",sz,"rejected")}
 if(!r.ok)throw oErr(r.status,j);const d=j.data&&j.data[0];if(!d||!(d.b64_json||d.url))throw new Error(tr("GPT Image không trả về ảnh"));LAST_IMG_M=m;
-return d.b64_json?"data:image/"+(j.output_format||"jpeg")+";base64,"+d.b64_json:d.url}
+return fitRatio(d.b64_json?"data:image/"+(j.output_format||"jpeg")+";base64,"+d.b64_json:d.url,ratio)}
 async function gptChain(prompt,img,ratio,extra){if(!S.piai_okey){const e=new Error("GPT Image: "+tr("Chưa có OpenAI API key")+" (⚙)");e.status=401;throw e}
 let last;for(const m of await oImgModels()){try{return await gptReq(m,prompt,img,ratio,extra)}catch(e){last=e;console.warn("[PiAi] GPT Image",m,e.status,e.message);if(e.status==401||(e.status==429&&/quota|billing/i.test(e.raw||"")))break}}throw last}
 const GEM_BILL=e=>e&&(e.status==429||/429|billing|quota|RESOURCE_EXHAUSTED|free[ _-]?tier|hết hạn mức|thanh toán/i.test(e.message||""));
