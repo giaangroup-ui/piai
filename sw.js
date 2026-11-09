@@ -1,5 +1,5 @@
 // Cache theo phiên bản: sw.js?v=<commit>. Không bao giờ chạm vào API/bên thứ ba.
-const V=new URL(self.location).searchParams.get("v")||"dev",C="piai-"+V,SHELL=["./","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png","./icons/apple-touch-icon.png"];
+const V=new URL(self.location).searchParams.get("v")||"dev",C="piai-"+V,SHELL=["./","./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png","./icons/apple-touch-icon.png","./p1/brief.js","./p1/massing.js","./p1/prompt.js","./p1/verify.js","./p1/pipeline.js","./p1/ui.js","./p1/agent.js"];
 self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>Promise.all(SHELL.map(u=>fetch(u,{cache:"reload"}).then(r=>r.ok&&c.put(u,r)).catch(()=>{})))))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{const r=e.request,u=new URL(r.url);

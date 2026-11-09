@@ -50,6 +50,4 @@ window.NB={s1,s2,go,reset(){B=JSON.parse(JSON.stringify(PiBrief.HOTEL));s1()},ca
  toMass(){const nb=PiBrief.readForm($("wbody"),B);const e=PiBrief.validate(nb);if(e.length){$("nberr").textContent="⚠ "+e.join(" · ");return}B=nb;PiBrief.save(B);s2()}};
 const _t=toolUI;toolUI=function(k){if(W[k]&&W[k].custom=="brief"){wTool="brief";return s1()}return _t(k)};
 })();
-/* đưa công cụ lên đầu Kho tiện ích; vẽ lại nếu trang đã render trước khi module tải xong */
-(()=>{const _m=modes;modes=function(tab){if(tab!="ext")return _m(tab);const o={...W};const ks=Object.keys(W);for(const k of ks)delete W[k];W.brief=o.brief;for(const k of ks)if(k!="brief")W[k]=o[k];return _m(tab)};
-const h=location.hash;if(h=="#/app/brief")toolUI("brief");else if(/#\/app\/tab\/ext/.test(h))modes("ext")})();
+(()=>{const h=location.hash;if(h==="#/app/brief")toolUI("brief")})();
