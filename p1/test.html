@@ -1,0 +1,7 @@
+<!doctype html><meta charset=utf-8><script src=brief.js></script><script src=massing.js></script><script src=prompt.js></script><script src=verify.js></script><script src=pipeline.js></script><body><div id=f></div><img id=m width=768><pre id=p></pre><div id=s></div>
+<script>const B=PiBrief.HOTEL;f.innerHTML=PiBrief.formHTML(B);console.log("VALID",JSON.stringify(PiBrief.validate(B)));
+window.T=(async()=>{const mk=PiMassing.render(B,B.cameras.corner);m.src=mk.url;
+/* mock: ảnh lần 1 sai số tầng, lần 2 đúng -> phải loại lần 1, đạt lần 2, trừ xu 1 lần */
+let n=0,charged=0;const good={floors_podium:5,floors_tower:14,buildings:1,bbox:mk.marks.vol,horizon:mk.marks.horizon,camera_same:true,site:{carpark:1,pond:1,islands:1,streets_corner:1},extra_structures:false,text_or_outlines:false,style_ok:true,tower_wide_slab:true,ground_corner_chamfer_passage:true,columns_under_corner_or_canopy:false};
+const r=await PiPipeline.run(B,"corner",{gen:async()=>"img"+(++n),check:async()=>n==1?{...good,floors_podium:3}:good,charge:()=>charged++,onStep:e=>{if(e.html)s.innerHTML+=e.html;if(e.prompt)p.textContent=e.prompt}});
+return {ok:r.ok,attempts:r.log.length,charged,first:r.log[0].sc.pass,marks:mk.marks,promptHasFix:p.textContent.includes("exactly 5 floors")}})();</script>

@@ -130,7 +130,7 @@ img,video,canvas{max-width:100%}
 </style>
 </head><body>
 <header><a class="logo" href="#/"><svg viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" x2="1"><stop stop-color="#f5a524"/><stop offset="1" stop-color="#ff7a3d"/></linearGradient></defs><path d="M4 28V12L16 4l12 8v16h-7V18h-10v10z" fill="url(#lg)"/><circle cx="16" cy="13" r="2.4" fill="#0a0c10"/></svg>Pi<b>Ai</b></a>
-<button class="ib hb hbl" onclick="this.parentNode.classList.toggle('mo')">☰</button><nav><a href="#/app/render">Tạo ảnh</a><a href="#/app/film">Tạo video</a><a href="#/pricing">Bảng giá</a><a href="#/" onclick="setTimeout(()=>lienhe.scrollIntoView(),50)">Liên hệ</a></nav>
+<button class="ib hb hbl" onclick="this.parentNode.classList.toggle('mo')">☰</button><nav><a href="#/app/agent">Pi Agent</a><a href="#/app/render">Tạo ảnh</a><a href="#/app/film">Tạo video</a><a href="#/pricing">Bảng giá</a><a href="#/" onclick="setTimeout(()=>lienhe.scrollIntoView(),50)">Liên hệ</a></nav>
 <span id="cred" style="font-size:13px;color:var(--m)"></span><span id="lsL"></span><button class="ghost" onclick="openSet()">⚙ API</button><a href="#/app/render"><button class="btn">Bắt đầu</button></a></header>
 
 <main id="landing"></main>
@@ -260,7 +260,7 @@ function fid(o){return {"Cao":"Strictly preserve geometry, massing, proportions,
 const FAQ=[["PiAi có miễn phí không?","Bản này dùng API key Gemini của chính bạn: bạn chỉ trả phí cho Google theo mức sử dụng (Google có hạn mức miễn phí). Không có API key vẫn dùng thử được ở chế độ Demo."],["Tôi có quyền thương mại với ảnh tạo ra?","Ảnh do bạn tạo với tài khoản Gemini của bạn; hãy tham khảo điều khoản sử dụng của Google AI để biết chi tiết."],["Dữ liệu dự án có an toàn không?","Ảnh được gửi trực tiếp từ trình duyệt tới Google Gemini, PiAi không có máy chủ trung gian. Lịch sử chỉ lưu trên máy bạn."],["AI có thay thế kiến trúc sư?","Không. AI giúp lên ý tưởng và trình bày nhanh hơn; chuyên môn kỹ thuật vẫn thuộc về kiến trúc sư."],["Độ phân giải ảnh tối đa?","Lên tới 4K tùy model (Nano Banana 2.1 hỗ trợ 1K/2K/4K)."],["Video dài bao lâu?","Model Gemini Omni Flash tạo đoạn video ngắn (khoảng vài–10 giây), 720p mặc định, có thể chọn 1080p/4K."],["Làm sao lấy API key?","Vào aistudio.google.com/apikey, đăng nhập Google, bấm Create API key rồi dán vào ⚙ API."]];
 function landing(){const tools=Object.entries(T).map(([k,v])=>`<div class="tc" onclick="location.hash='#/app/${k}'"><div class="ic">${v.ic}</div><h3>${v.n}</h3><p>${v.d}</p></div>`).join("");
 $("landing").innerHTML=`<div class="wrap"><div class="hero"><div><span class="pill">✦ Công nghệ AI Kiến trúc 2026 · Nhanh gấp 10 lần</span><h1>Kiến trúc & Nội thất<br><span>cùng PiAi</span></h1><p style="color:var(--m);font-size:18px">Biến nét phác thảo tay thành phối cảnh 3D sắc nét trong vài giây. Quy trình tối ưu cho Kiến trúc sư, Nhà thiết kế và Môi giới BĐS.</p>
-<div class="row"><a href="#/app/render"><button class="btn">🚀 Dùng thử ngay</button></a><button class="ghost" onclick="guide.showModal()">▶ Xem hướng dẫn</button></div>
+<div class="row"><a href="#/app/agent"><button class="btn">🧠 Dùng Pi Agent</button></a> <a href="#/app/render"><button class="btn">🚀 Dùng thử ngay</button></a><button class="ghost" onclick="guide.showModal()">▶ Xem hướng dẫn</button></div>
 <div class="stats"><div><b>11</b><small>CÔNG CỤ AI</small></div><div><b>4K</b><small>ĐỘ PHÂN GIẢI</small></div><div><b>~90%</b><small>TIẾT KIỆM THỜI GIAN</small></div></div></div>
 <div class="art cmp" id="heroCmp">${house("sketch")}<div class="l after">${house("day")}</div><div class="bar"></div><span class="tag" style="left:10px">Phác thảo</span><span class="tag" style="right:10px">Render AI</span><input type="range" min="0" max="100" value="50"></div></div></div>
 <section class="s"><div class="wrap"><h2>Bộ công cụ thiết kế chuyên biệt</h2><div class="sub">Giải pháp cho mọi giai đoạn dự án</div><div class="grid">${tools}</div></div></section>
@@ -906,7 +906,7 @@ p:o=>{const J={"Tăng độ nét & chi tiết (Upscale)":"upscale and enhance: i
 return `Post-production of this architectural image: ${J[o.job]||o.job}${o.sky&&o.sky!="Mặc định"?`; new sky: ${EN[o.sky]||o.sky}`:""}; intensity: ${({"Nhẹ nhàng":"subtle","Vừa phải":"moderate","Mạnh":"strong"})[o.lv]||"moderate"}. Keep the building geometry, composition and camera exactly; do not redesign.`}};
 EN["Trời xanh mây trắng"]="blue sky with white clouds";EN["Hoàng hôn rực rỡ"]="vivid sunset";EN["Bầu trời đêm đầy sao"]="starry night sky";EN["Trời u ám điện ảnh"]="cinematic overcast sky";EN["Giờ xanh chạng vạng"]="blue hour twilight";
 /* AI Agent */
-W.agent={tab:"ext",ic:"🤖",n:"AI Agent Kiến trúc",d:"Trợ lý AI chuyên ngành: tư vấn thiết kế, viết prompt và mở đúng công cụ cho bạn.",custom:"agent",kind:"txt",s:[],c:"none",p:o=>""};
+W.agent={tab:"ext",ic:"🧠",n:"Pi Agent",d:"Điều phối viên: nhận yêu cầu, lập kế hoạch, chỉ huy các công cụ AI trong app hoàn thành việc.",custom:"agent",kind:"txt",s:[],c:"none",p:o=>""};
 W.quote={tab:"ext",ic:"🧾",n:"Lập Báo Giá",d:"Lập báo giá thiết kế/thi công chuyên nghiệp, AI gợi ý hạng mục, in hoặc xuất PDF/CSV.",custom:"quote",kind:"local",s:[],c:"none",p:o=>""};
 const AG_TOOLS=["render","interior","urban","landscape","p_arch","p_int","r_ext","r_int","r_land","view1","viewC","edit","rerender","txt2img","post","up4k","material","staging","sketch","film","estimate","quote"];
 let AG=JSON.parse(S.piai_chat||"[]"),agImg=null;
@@ -1468,4 +1468,5 @@ if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWork
 setTimeout(check,2500);setInterval(check,5*60*1000);setInterval(()=>{if(pending)AU_TRY()},3000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check()});addEventListener("focus",check);addEventListener("online",check);
 })();</script>
+<script src="p1/brief.js"></script><script src="p1/massing.js"></script><script src="p1/prompt.js"></script><script src="p1/verify.js"></script><script src="p1/pipeline.js"></script><script src="p1/ui.js"></script><script src="p1/agent.js"></script>
 </body></html>
