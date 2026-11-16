@@ -131,12 +131,12 @@ img,video,canvas{max-width:100%}
 </head><body>
 <header><a class="logo" href="#/"><svg viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" x2="1"><stop stop-color="#f5a524"/><stop offset="1" stop-color="#ff7a3d"/></linearGradient></defs><path d="M4 28V12L16 4l12 8v16h-7V18h-10v10z" fill="url(#lg)"/><circle cx="16" cy="13" r="2.4" fill="#0a0c10"/></svg>Pi<b>Ai</b></a>
 <button class="ib hb hbl" onclick="this.parentNode.classList.toggle('mo')">☰</button><nav><a href="#/app/agent">Pi Agent</a><a href="#/app/render">Tạo ảnh</a><a href="#/app/film">Tạo video</a><a href="#/pricing">Bảng giá</a><a href="#/" onclick="setTimeout(()=>lienhe.scrollIntoView(),50)">Liên hệ</a></nav>
-<span id="cred" style="font-size:13px;color:var(--m)"></span><span id="lsL"></span><button class="ghost" onclick="openSet()">⚙ API</button><a href="#/app/render"><button class="btn">Bắt đầu</button></a></header>
+<button class="btn instX" style="display:none;background:linear-gradient(90deg,#f5a524,#ff7a3d);color:#0a0c10;font-weight:700">📲 Cài đặt</button><span id="cred" style="font-size:13px;color:var(--m)"></span><span id="lsL"></span><button class="ghost" onclick="openSet()">⚙ API</button><a href="#/app/render"><button class="btn">Bắt đầu</button></a></header>
 
 <main id="landing"></main>
 <div id="pricing" style="display:none"></div>
 <div id="ws">
-<div class="wtop"><button class="ghost" onclick="location.hash='#/'">⌂ Trang chủ</button><a class="logo" href="#/app" id="wlogo"></a><div class="sp"></div>
+<div class="wtop"><button class="ghost" onclick="location.hash='#/'">⌂ Trang chủ</button><a class="logo" href="#/app" id="wlogo"></a><div class="sp"></div><button class="btn instX" style="display:none;background:linear-gradient(90deg,#f5a524,#ff7a3d);color:#0a0c10;font-weight:700">📲 Cài đặt</button>
 <div class="credit" id="wcbox">⚡ <b id="wcred">0</b> xu <button class="btn" onclick="cred();xuLogR();$('napDlg').showModal()">Nạp</button></div>
 <div style="position:relative"><button class="ib hb" title="Menu" onclick="$('wmenu').classList.toggle('on')">☰</button><div class="wmenu" id="wmenu"><div style="position:relative"><button class="ib" title="Thông báo" onclick="$('notif').classList.toggle('on')">🔔</button><div class="pop" id="notif"><b style="color:var(--t)">Thông báo</b><p>Chào mừng bạn đến PiAi! Mẹo: để trống ô prompt, AI sẽ tự phân tích ảnh và viết prompt cho bạn.</p></div></div>
 <button class="ib" title="Đổi giao diện sáng/tối" onclick="toggleTheme()" id="thm">🌙</button>
@@ -169,7 +169,7 @@ img,video,canvas{max-width:100%}
 <h4 style="margin:14px 0 6px">🧠 Model AI</h4><p style="font-size:12px;color:var(--m)">Mỗi tác vụ dùng model Gemini phù hợp nhất; tự động thử lại và chuyển sang model dự phòng khi máy chủ bận. ✗ = key của bạn không thấy model này.</p><div id="mrows"></div>
 </details>
 <div class="row"><button class="btn" onclick="saveSet()">Lưu</button><button onclick="dlg.close()">Đóng</button></div></dialog>
-<button id="instB" style="display:none;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:9999;padding:10px 16px;border-radius:999px;background:linear-gradient(90deg,#f5a524,#ff7a3d);color:#0a0c10;border:0;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)">📲 Cài app</button><script>
+<button id="instB" style="display:none;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:9999;padding:10px 16px;border-radius:999px;background:linear-gradient(90deg,#f5a524,#ff7a3d);color:#0a0c10;border:0;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)">📲 Cài đặt</button><script>
 /* =====================================================================
    PiAi – BẢNG GIÁ XU (GIẢ LẬP / TEST ONLY – không thanh toán thật)
    Sửa giá ở đây, hoặc trong ⚙ Cài đặt → "Bảng giá xu" (ghi đè, lưu ở trình duyệt).
@@ -1213,17 +1213,26 @@ Object.assign(I18N,{"GPT Image (OpenAI)":["GPT Image (OpenAI)","GPT Image（Open
 "Seedance 2.5 / 8 giây (720p)":["Seedance 2.5 / 8 seconds (720p)","Seedance 2.5 / 8秒（720p）"],"Kling 4.0 / 8 giây (720p)":["Kling 4.0 / 8 seconds (720p)","Kling 4.0 / 8秒（720p）"],"MiniMax H3 Max / 8 giây (768P)":["MiniMax H3 Max / 8 seconds (768P)","MiniMax H3 Max / 8秒（768P）"],"Wan 3.0 / 8 giây (720p)":["Wan 3.0 / 8 seconds (720p)","Wan 3.0 / 8秒（720p）"]});
 Object.assign(I18N,{"Nâng cao":["Advanced","高级"],"Nhanh":["Fast","快速"],"Cao cấp":["Premium","高级版"],"Bật nhà cung cấp video nâng cao (Seedance, Kling, MiniMax, Wan)":["Enable advanced video providers (Seedance, Kling, MiniMax, Wan)","启用高级视频提供商（Seedance、Kling、MiniMax、Wan）"],
 "Nhanh: Nano Banana – nhanh, tiết kiệm (mặc định, tự chọn model tốt nhất). Cao cấp: Nano Pro – chi tiết hơn. GPT Image: OpenAI.":["Fast: Nano Banana – quick and cheap (default, picks the best model automatically). Premium: Nano Pro – more detail. GPT Image: OpenAI.","快速：Nano Banana——快速、省钱（默认，自动选择最佳模型）。高级版：Nano Pro——细节更丰富。GPT Image：OpenAI。"]});
-Object.assign(I18N,{"📲 Cài app":["📲 Install app","📲 安装应用"],"Nhấn Chia sẻ → Thêm vào MH chính":["Tap Share → Add to Home Screen","点击 分享 → 添加到主屏幕"]});/*v13 PWA*/(function(){let dp=null;const b=$("instB"),ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform=="MacIntel"&&navigator.maxTouchPoints>1),sa=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+Object.assign(I18N,{"📲 Cài app":["📲 Install app","📲 安装应用"],"📲 Cài đặt":["📲 Install","📲 安装"],"Nhấn Chia sẻ → Thêm vào MH chính":["Tap Share → Add to Home Screen","点击 分享 → 添加到主屏幕"]});/*v13 PWA*/(function(){let dp=null;const b=$("instB"),ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform=="MacIntel"&&navigator.maxTouchPoints>1),sa=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
 (()=>{let n=0;const F=window.fetch;window.fetch=function(i,o){let x=false;try{x=new URL(typeof i=="string"?i:i.url,location.href).origin!==location.origin}catch(e){}if(!x)return F.apply(this,arguments);n++;return F.apply(this,arguments).finally(()=>n--)};
 window.AU_LANG=()=>{try{return LANG}catch(e){return localStorage.piai_lang||"vi"}};
 window.AU_STATE=()=>{if(n>0||document.querySelector(".spin.on"))return"busy";/* đang render: không bao giờ tải lại */
  const a=document.activeElement;if(a&&/^(TEXTAREA|INPUT)$/.test(a.tagName)&&a.type!="password"&&a.value)return"work";
  if([...document.images].some(i=>i.src&&!i.src.startsWith(location.origin)&&i.naturalWidth>160&&i.offsetParent))return"work";/* có ảnh tải lên / kết quả render chưa lưu */
  return"idle"}})();
-addEventListener("beforeinstallprompt",e=>{e.preventDefault();dp=e;b.style.display=""});
-addEventListener("appinstalled",()=>{dp=null;b.style.display="none"});
-if(ios&&!sa)b.style.display="";
-b.onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;b.style.display="none"}else {const k="Nhấn Chia sẻ → Thêm vào MH chính",v=I18N[k],i=LANG=="en"?0:LANG=="zh"?1:-1;alert(i<0||!v?k:v[i])}}})();
+const X=()=>[b,...document.querySelectorAll(".instX")];
+const show=v=>X().forEach(x=>x.style.display=v?"":"none");
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();dp=e;if(!sa)show(1)});
+addEventListener("appinstalled",()=>{dp=null;show(0)});
+if(!sa)show(1);/* luôn hiện nút Cài đặt khi chưa chạy dạng app */
+const help=()=>{const ua=navigator.userAgent,and=/android/i.test(ua),edge=/edg\//i.test(ua),safari=/^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+ let t;if(ios)t="Trên iPhone/iPad (Safari): bấm nút Chia sẻ ⬆ ở dưới màn hình → chọn “Thêm vào MH chính” → Thêm.";
+ else if(and)t="Trên Android (Chrome): bấm ⋮ góc trên → “Cài đặt ứng dụng” hoặc “Thêm vào màn hình chính”.";
+ else if(edge)t="Trên Edge: bấm ⋯ góc trên → Ứng dụng → “Cài đặt PiAi”. Hoặc bấm biểu tượng ⊕ ở cuối thanh địa chỉ.";
+ else if(safari)t="Trên Safari (Mac): menu Tệp → “Thêm vào Dock”.";
+ else t="Trên Chrome máy tính: bấm biểu tượng cài đặt 🖥⬇ ở cuối thanh địa chỉ, hoặc ⋮ → Truyền, lưu và chia sẻ → “Cài đặt PiAi”.";
+ alert("📲 Cài PiAi ra màn hình\n\n"+t+"\n\nNếu đã cài rồi: mở PiAi từ biểu tượng trên màn hình. App tự cập nhật bản mới.")};
+X().forEach(x=>x.onclick=async()=>{if(dp){dp.prompt();const r=await dp.userChoice;dp=null;if(r&&r.outcome=="accepted")show(0)}else help()});})();
 /* ===== v14 Chế độ máy chủ (multi-user: Supabase Auth + Cloudflare Worker) ===== */
 Object.assign(I18N,{"Đăng nhập":["Sign in","登录"],"Đăng ký":["Sign up","注册"],"Đăng xuất":["Sign out","退出登录"],"Đăng nhập bằng Google":["Continue with Google","使用 Google 登录"],"Mật khẩu":["Password","密码"],"Tài khoản PiAi":["PiAi account","PiAi 账户"],"Chế độ máy chủ":["Server mode","服务器模式"],"Vui lòng đăng nhập":["Please sign in","请先登录"],"Đăng nhập để dùng AI – xu được trừ trên máy chủ, không cần API key.":["Sign in to use AI – xu are charged on the server, no API key needed.","登录即可使用 AI——在服务器上扣除积分，无需 API key。"],"Kiểm tra email để xác nhận tài khoản, rồi đăng nhập.":["Check your email to confirm the account, then sign in.","请查收邮件确认账户后再登录。"],"Chưa đăng nhập":["Not signed in","未登录"],"Số dư":["Balance","余额"],"Trang quản trị":["Admin page","管理页面"],"Nạp xu – chuyển khoản":["Top up xu – bank transfer","充值积分——银行转账"],"Quét mã VietQR bằng app ngân hàng. Giữ nguyên nội dung chuyển khoản. Xu được cộng sau khi quản trị viên xác nhận.":["Scan the VietQR code with your banking app. Keep the transfer note unchanged. Xu are added after an admin confirms.","用银行 App 扫描 VietQR 码，请保持转账备注不变。管理员确认后积分到账。"],"Nội dung CK":["Transfer note","转账备注"],"Số tiền":["Amount","金额"],"Đang chờ duyệt":["Pending approval","等待审核"],"Đã duyệt":["Approved","已批准"],"Từ chối":["Rejected","已拒绝"],"Yêu cầu nạp của bạn":["Your top-up requests","您的充值请求"],"Chọn gói để tạo yêu cầu chuyển khoản.":["Choose a pack to create a transfer request.","选择套餐以创建转账请求。"],"Chưa cấu hình tài khoản ngân hàng trên máy chủ – liên hệ quản trị viên.":["The server has no bank account configured – contact the admin.","服务器未配置银行账户——请联系管理员。"],"Email hoặc mật khẩu không đúng":["Wrong email or password","邮箱或密码错误"],"Tạo yêu cầu nạp":["Create top-up request","创建充值请求"],"Xu được trừ trên máy chủ sau mỗi lần tạo thành công.":["Xu are deducted on the server after each successful generation.","每次成功生成后在服务器扣除积分。"],"Lịch sử xu (máy chủ)":["Xu history (server)","积分记录（服务器）"],"Không đủ xu":["Not enough xu","积分不足"],"Đang tải...":["Loading...","加载中..."]});
 const SRV=(()=>{const c=Object.assign({},window.PIAI_CONFIG||{});try{Object.assign(c,JSON.parse(S.piai_srvcfg||"{}"))}catch(_){}const t=x=>String(x||"").trim().replace(/\/+$/,"");return t(c.SERVER_URL)&&t(c.SUPABASE_URL)&&t(c.SUPABASE_ANON_KEY)?{SERVER_URL:t(c.SERVER_URL),SUPABASE_URL:t(c.SUPABASE_URL),SUPABASE_ANON_KEY:t(c.SUPABASE_ANON_KEY)}:null})();
