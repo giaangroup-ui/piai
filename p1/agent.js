@@ -16,7 +16,8 @@ const REG=[
  {k:"sketch",n:"Ảnh thành Sketch",kind:"img",d:"Chuyển ảnh sang sketch"},
  {k:"post",n:"Hậu kỳ ảnh",kind:"img",d:"Sửa ánh sáng / bầu trời"},
  {k:"viewC",n:"Sáng tạo view",kind:"nav",d:"Mở bộ tạo nhiều góc nhìn"},
- {k:"film",n:"Video kiến trúc",kind:"nav",d:"Mở trang tạo video"},
+ {k:"fvid",n:"Video miễn phí",kind:"fvid",d:"Dựng video 9 giây từ ảnh khối + ảnh render ngay trên máy (không tốn phí)"},
+ {k:"film",n:"Video kiến trúc",kind:"nav",d:"Mở trang tạo video AI (Cao cấp/Key riêng)"},
  {k:"estimate",n:"Dự toán",kind:"nav",d:"Mở công cụ dự toán"},
  {k:"quote",n:"Báo giá",kind:"nav",d:"Mở lập báo giá"},
  {k:"history",n:"Lịch sử",kind:"nav",d:"Mở lịch sử ảnh"}
@@ -36,14 +37,17 @@ const st=document.createElement("style");st.textContent=`
 .paw .demo{background:#ff3b3018;border:1px solid #ff3b30;color:#ffb3ad;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:13px}
 .paw .sug{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}`;document.head.appendChild(st);
 
-let PA=JSON.parse(localStorage.piai_pa||"[]"),busy=false,lastImg=null,lastBrief=null;try{const b=JSON.parse(localStorage.piai_pa_brief||"null");if(b&&b.volumes)lastBrief=b}catch(_){}
-const isDemo=()=>!localStorage.piai_key&&!localStorage.piai_okey&&!localStorage.piai_ckey&&!(window.PIAI_CONFIG||{}).SERVER_URL;
+let PA=JSON.parse(localStorage.piai_pa||"[]"),busy=false,lastImg=null,lastBrief=null,lastRes=null;
+const lastResult=()=>{for(let k=PA.length-1;k>=0;k--){const m=PA[k];if(m.r==="a"&&m.img)return {img:m.img,mass:m.mass,brief:lastBrief}}return null};
+const vidBtn=()=>`<div class="sug" style="margin-top:8px"><button class="chip" onclick="PA_VIDEO()">🎬 Video miễn phí 9 giây</button></div>`;try{const b=JSON.parse(localStorage.piai_pa_brief||"null");if(b&&b.volumes)lastBrief=b}catch(_){}
+const isDemo=()=>false;/* v21: bỏ DEMO – không có key thì chạy hạng Miễn phí thật */
+const TIER=()=>window.PiFree?PiFree.tier():"own",FREE=()=>TIER()=="free";
 const unit=()=>typeof qUnit==="function"?qUnit(1,typeof selImgM==="function"?selImgM():""):10;
-const save=()=>{try{if(lastBrief)localStorage.piai_pa_brief=JSON.stringify(lastBrief);localStorage.piai_pa=JSON.stringify(PA.slice(-12))}catch(_){try{localStorage.piai_pa=JSON.stringify(PA.slice(-4).map(m=>({...m,img:null,mass:null})))}catch(_){}}};
+const save=()=>{try{if(lastBrief)localStorage.piai_pa_brief=JSON.stringify(lastBrief);localStorage.piai_pa=JSON.stringify(PA.slice(-12).map(m=>m.vid?{...m,vid:null}:m))}catch(_){try{localStorage.piai_pa=JSON.stringify(PA.slice(-4).map(m=>({...m,img:null,mass:null})))}catch(_){}}};
 const esc=t=>String(t||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
 function draw(){const L=$("paLog");if(!L)return;
- L.innerHTML=PA.length?PA.map((m,i)=>`<div class="agm ${m.r}">${m.t?`<div>${esc(m.t).replace(/\n/g,"<br>")}</div>`:""}${m.planHtml||""}${m.mass&&!m.img?`<img class="result" src="${m.mass}" alt="massing" style="max-height:60vh;object-fit:contain;background:#bcd9ee">`:""}${m.img?`<img class="result" src="${m.img}" alt="result" style="max-height:70vh;object-fit:contain">`:""}${m.cards?`<details class="pck"><summary>${esc(m.cardSum||"Bảng tự kiểm")}</summary>${m.cards}</details>`:""}${m.actions||""}</div>`).join(""):
+ L.innerHTML=PA.length?PA.map((m,i)=>`<div class="agm ${m.r}">${m.t?`<div>${esc(m.t).replace(/\n/g,"<br>")}</div>`:""}${m.planHtml||""}${m.mass&&!m.img?`<img class="result" src="${m.mass}" alt="massing" style="max-height:60vh;object-fit:contain;background:#bcd9ee">`:""}${m.img?`<img class="result" src="${m.img}" alt="result" style="max-height:70vh;object-fit:contain">`:""}${m.vid?`<video class="result" src="${m.vid}" controls playsinline autoplay muted loop style="max-width:100%;max-height:70vh;border-radius:10px;margin-top:8px"></video>`:""}${m.cards?`<details class="pck"><summary>${esc(m.cardSum||"Bảng tự kiểm")}</summary>${m.cards}</details>`:""}${m.actions||""}</div>`).join(""):
  `<div class="mu" style="text-align:center;padding:28px">Pi Agent nhận yêu cầu bằng tiếng Việt, lập kế hoạch rồi chỉ huy các công cụ trong app (render, nhiệm vụ thiết kế, sửa ảnh, video…). Ảnh sai bị loại, không trừ xu.</div>`;
  L.scrollTop=L.scrollHeight}
 
@@ -55,7 +59,7 @@ const SYS=`You are Pi Agent inside PiAi, an architecture AI app for Vietnam. The
 Rules: 1-4 steps max. Use "brief" whenever the user describes a building to render (type, dimensions, floors, levels) – it builds an exact massing and verifies the render. Prefer image tools when they want a render. Use nav tools (film,estimate,quote,viewC,history) only to open that screen as last step. verify=true for architecture exterior renders. Never invent tools outside the list.`;
 
 const WANT_EDIT=/sửa ảnh|chỉnh ảnh|đổi vật liệu|thay vật liệu|xóa|bỏ (?:cái|người|xe)|upscale|nâng độ phân giải|sketch|hậu kỳ|bầu trời/i;
-const WANT_NAV=/dự toán|báo giá|video|phim|lịch sử/i;
+const WANT_NAV=/dự toán|báo giá|lịch sử/i,WANT_VID=/video|phim|clip|thước phim/i;
 function briefPlan(P,q,note){const ok=P.got.map(x=>"• "+x).join("\n"),as=P.assume.length?"\nGiả định: "+P.assume.join("; "):"";
  return {reply:`Em hiểu yêu cầu như sau:\n${ok}${as}${note?"\n"+note:""}\nEm dựng khối đúng số liệu, render theo khối và tự kiểm trước khi giao.`,brief:P.brief,view:P.view,
   steps:[{tool:"bparse",title:"Phân tích nhiệm vụ",detail:PiBrief.summary(P.brief)},{tool:"bmass",title:"Dựng khối 3D – "+(PiBrief.CAM_LABEL[P.view]||P.view),detail:P.brief.type=="tower"?"Mỗi vạch = 1 tầng; mã màu = khu đất":"Mỗi vạch = 1 tầng; mã màu = vật liệu"},{tool:"brender",title:"Render + tự kiểm ✓/✗",detail:"Tối đa 3 lần; ảnh sai bị loại, không trừ xu",verify:true}]}}
@@ -65,17 +69,19 @@ async function readImageBrief(img,q){/* đọc ảnh mặt bằng / concept -> m
   const t=await PiPipeline.timeout(callText(sys,ask,await shrink(img,1600)),40000,"timeout");return String(t||"").split("\n")[0].slice(0,400)}catch(_){return ""}}
 async function plan(q,img){
  if(VIEWREQ&&lastBrief){const k=VIEWREQ;VIEWREQ=null;return briefPlan({ok:true,brief:lastBrief,got:[PiBrief.summary(lastBrief)],assume:[],view:k},q)}
+ if(WANT_VID.test(q)){const P0=PiBrief.parse(q,null);if(!(P0.ok&&P0.strong)){const last=lastResult();if(last)return {reply:"Em dựng video miễn phí từ ảnh khối và ảnh render gần nhất (chạy ngay trên máy, không tốn phí).",steps:[{tool:"fvid",title:"Video miễn phí 9 giây",detail:"Khối dựng → render → zoom chậm, có tiêu đề"}]};
+   if(!lastBrief)return {reply:"Để làm video, anh/chị mô tả công trình (loại nhà, kích thước, số tầng) – em render ảnh trước rồi dựng video miễn phí; hoặc mở trang Video AI.",steps:[{tool:"film",title:"Mở trang Video AI",detail:""}]}}}
  if(!WANT_EDIT.test(q)&&!WANT_NAV.test(q)){let P=PiBrief.parse(q,lastBrief);let note="";
   if(img&&/mặt bằng|concept|bản vẽ|mặt cắt|theo (?:ảnh|hình)/i.test(q)){const d=await readImageBrief(img,q);if(d){const P2=PiBrief.parse(q+". "+d,lastBrief);if(P2.ok){P=P2;note="(Đã đọc thêm số liệu từ ảnh đính kèm: "+d+")"}}else if(isDemo())note="(DEMO: cần API key để đọc số liệu từ ảnh; em dùng số liệu trong lời nhắn.)"}
   if(P.ok&&P.type!="tower"&&!P.strong&&lastBrief){P={ok:true,brief:lastBrief,got:["Dùng số liệu công trình đang làm: "+PiBrief.summary(lastBrief)],assume:[],view:P.view}}
   if(!P.ok&&/góc|mặt cắt|trên cao|mặt tiền|render lại/i.test(q)&&lastBrief){P={ok:true,brief:lastBrief,got:[PiBrief.summary(lastBrief)],assume:[],view:PiBrief.parse("nhà phố "+q).view||"front"}}
-  if(P.ok)return briefPlan(P,q,note)}
+  if(P.ok){const j=briefPlan(P,q,note);if(WANT_VID.test(q))j.steps.push({tool:"fvid",title:"Video miễn phí 9 giây",detail:"Dựng từ ảnh khối + ảnh đạt"});return j}}
  if(isDemo()){await zz(350);
   const wantEdit=WANT_EDIT.test(q);
   const steps=wantEdit?[{tool:"edit",title:"Chỉnh sửa ảnh",detail:"Sửa theo mô tả",prompt:q,verify:false}]:
    /dự toán/i.test(q)?[{tool:"estimate",title:"Mở dự toán",detail:""}]:
    [{tool:"render",title:"Render kiến trúc",detail:"Tạo phối cảnh",prompt:"Photorealistic architectural photograph: "+q+". Keep composition coherent, high detail, 8k.",verify:true}];
-  return {reply:"(DEMO) Pi Agent lập kế hoạch mô phỏng – thêm API key ở ⚙ để lập kế hoạch và render thật. Mẹo: ghi loại nhà + kích thước + số tầng (vd “nhà phố 5x20m 1 trệt 2 lầu sân thượng”) để Pi dựng khối và render đúng.",steps}}
+  return {reply:"Mẹo: ghi loại nhà + kích thước + số tầng (vd “nhà phố 5x20m 1 trệt 2 lầu sân thượng”) để Pi dựng khối và render đúng.",steps}}
  const hist=PA.filter(m=>m.r==="u"||m.r==="a").slice(-8).map(m=>(m.r==="u"?"User: ":"Agent: ")+(m.raw||m.t||"")).join("\n");
  const im2=img?await shrink(img,1280):null;let txt;
  try{txt=await PiPipeline.timeout(withTask("pro",()=>callText(SYS,hist+"\nUser: "+q+(img?"\n(User attached an image)":""),im2)),25000,"timeout")}
@@ -113,11 +119,19 @@ async function execSteps(steps,seedImg,J){
    if(meta.kind==="bparse"){const e=PiBrief.validate(BR);if(e.length){status[i]="fail";s.note="⚠ "+e.join(" · ");redraw();break}lastBrief=BR;status[i]="ok";s.note="Đã có số liệu";redraw();continue}
    if(meta.kind==="bmass"){const ks=Object.keys(PiBrief.cams(BR));if(!ks.includes(VIEW))VIEW=ks[0];MASS=PiMassing.render(BR,VIEW);box.mass=MASS.url;status[i]="ok";s.note=`${PiBrief.resolve(BR).storeys} tầng · đỉnh +${PiBrief.fmt(PiBrief.resolve(BR).top)} m`;
     box.actions=(box.actions||"")+`<div class="sug" style="margin-top:8px"><a class="btn sm" href="#/app/brief" onclick="PA_OPENBRIEF()">✏️ Chỉnh số liệu</a>${ks.filter(k=>k!==VIEW).map(k=>`<button class="chip" onclick="PA_VIEW('${k}')">Render ${esc(PiBrief.CAM_LABEL[k]||k)}</button>`).join("")}</div>`;redraw();continue}
-   if(meta.kind==="brender"){if(!isDemo()&&unit()>bal()){status[i]="fail";s.note=typeof NOXU=="function"?"Không đủ xu":"Không đủ xu";redraw();break}let t0=Date.now(),a=1;const tick=setInterval(()=>{s.note=`⏳ Lần ${a} · ${Math.round((Date.now()-t0)/1000)} giây`;redraw()},1000);let r;
-    try{r=await PiPipeline.appRun(BR,VIEW,{tool:"agent",onStep:e=>{if(e.type=="prompt")a=e.a;if(e.type=="check"){box.cards=e.html+(box.cards||"");box.cardSum=(e.sc.pass?"✅ Tự kiểm ĐẠT":"❌ Tự kiểm")+` – ${e.a} lần chấm (bấm để xem)`;if(!e.sc.pass)s.note=`❌ Lần ${e.a} bị loại – đang sửa prompt và render lại…`}redraw()}})}catch(e){r={ok:false,fatal:e.message}}finally{clearInterval(tick)}
-    if(r.ok){status[i]="ok";box.img=r.img;s.note=r.demo?"DEMO · 0 xu · ảnh có watermark":`ĐẠT sau ${r.log.length} lần · −${r.cost} xu`;if(r.demo)box.actions=(box.actions||"")+`<div class="demo">DEMO · 0 xu · ảnh có watermark – thêm API key ở ⚙ để render thật</div>`;else{try{wres={type:"img",data:r.img};wTool="agent";histSave(wres)}catch(_){}}}
+   if(meta.kind==="brender"){if(TIER()!="free"&&unit()>bal()){status[i]="fail";s.note=typeof NOXU=="function"?"Không đủ xu":"Không đủ xu";redraw();break}let t0=Date.now(),a=1;let srcN="";const tick=setInterval(()=>{s.note=`⏳ Lần ${a} · ${Math.round((Date.now()-t0)/1000)} giây${srcN?" · "+srcN:""}`;redraw()},1000);let r;
+    try{r=await PiPipeline.appRun(BR,VIEW,{tool:"agent",onStep:e=>{if(e.type=="prompt")a=e.a;if(e.type=="src")srcN=e.n.split(" (")[0];if(e.type=="error"&&!/check|chấm/i.test(e.msg||""))srcN="đổi nguồn miễn phí…";if(e.type=="check"){box.cards=e.html+(box.cards||"");box.cardSum=(e.sc.pass?"✅ Tự kiểm ĐẠT":"❌ Tự kiểm")+` – ${e.a} lần chấm (bấm để xem)`;if(!e.sc.pass)s.note=`❌ Lần ${e.a} bị loại – đang sửa prompt và render lại…`}redraw()}})}catch(e){r={ok:false,fatal:e.message}}finally{clearInterval(tick)}
+    const srcTag=r.src?`<div class="srcTag" style="font-size:12px;color:var(--m);margin-top:6px">Nguồn ảnh: ${esc(r.src)}${r.model?" · "+esc(r.model):""}${window.LAST_FREE_CHECK&&r.free?" · chấm bởi "+esc(LAST_FREE_CHECK):""}</div>`:"";
+    if(r.ok){status[i]="ok";box.img=r.img;lastRes={img:r.img,mass:box.mass,brief:BR,view:VIEW};s.note=r.free?`ĐẠT sau ${r.log.length} lần · Miễn phí · 0 xu`:`ĐẠT sau ${r.log.length} lần · −${r.cost} xu`;box.actions=(box.actions||"")+srcTag+vidBtn();try{wres={type:"img",data:r.img};wTool="agent";histSave(wres)}catch(_){}}
+    else if(r.unchecked||(r.draft&&r.draft.img)){const d=r.unchecked?{img:r.unchecked,locked:r.locked,src:r.src,model:r.model}:r.draft;status[i]="fail";box.img=d.img;lastRes={img:d.img,mass:box.mass,brief:BR,view:VIEW,draft:1};
+     s.note=r.unchecked?"Bản nháp – chưa tự kiểm được (nguồn chấm miễn phí đang hết lượt) · 0 xu":`Chưa đạt tự kiểm sau ${r.log.filter(l=>l.sc).length} lần – chỉ là bản nháp tham khảo · 0 xu`;
+     box.actions=(box.actions||"")+`<div class="demo">⚠ <b>BẢN NHÁP${d.locked?"":" Ý TƯỞNG"}</b> – ${r.unchecked?"chưa được AI chấm":"không đạt đủ tiêu chí tự kiểm"}${d.locked?"":"; ảnh từ nguồn miễn phí dự phòng nên <b>không khoá theo khối</b> (số tầng, tỷ lệ có thể sai)"}. Không tính là kết quả, không trừ xu. Muốn ảnh khoá hình + tự kiểm đầy đủ: thử lại sau (nguồn GPU miễn phí hồi lượt) hoặc chọn 💎 Cao cấp.</div>`+`<div class="srcTag" style="font-size:12px;color:var(--m);margin-top:6px">Nguồn ảnh: ${esc(d.src||"")}${d.model?" · "+esc(d.model):""}</div>`+vidBtn()}
     else{status[i]="fail";s.note=r.fatal?PiPipeline.fatalVi(r.fatal):"Không có ảnh đạt sau 3 lần – không giao ảnh sai, không trừ xu";box.t+=(box.t?"\n":"")+"⚠ "+s.note+(r.fatal?"\nẢnh khối vẫn dùng được: bấm ✏️ Chỉnh số liệu → ⬇ Ảnh khối.":"")}
-    redraw();if(!r.ok)break;continue}
+    redraw();if(!r.ok&&!(r.unchecked||r.draft))break;continue}
+   if(meta.kind==="fvid"){const L=lastRes||lastResult();if(!L||!L.img){status[i]="fail";s.note="Chưa có ảnh để dựng video";redraw();break}
+    try{const v=await PiFree.video([L.mass,L.img],{title:L.brief?PiBrief.summary(L.brief).split(/ · | \(/)[0].slice(0,40):"PiAi",sub:"Dựng bởi PiAi · miễn phí",onProgress:p=>{s.note=`🎬 Đang dựng ${Math.round(p*100)}%`;redraw()}});
+     status[i]="ok";s.note=`Video ${v.secs} giây · ${v.mime.includes("mp4")?"MP4":"WebM"} · 0 xu`;box.vid=v.url;box.vmime=v.mime;box.actions=(box.actions||"")+`<div style="margin-top:6px"><a class="btn sm" download="piai-video.${v.mime.includes("mp4")?"mp4":"webm"}" href="${v.url}">⬇ Tải video</a></div>`}
+    catch(e){status[i]="fail";s.note=e.message}redraw();continue}
    if(meta.kind==="brief"){const P=PiBrief.parse(PA.filter(m=>m.r==="u").slice(-1)[0]?.raw||"",lastBrief);if(P.ok){const j2=briefPlan(P,"");steps.splice(i,1,...j2.steps);BR=j2.brief;VIEW=j2.view;box.planHtml=planHtml(steps,status);i--;continue}
     if(typeof PiPipeline==="undefined"){status[i]="fail";s.note="Module brief chưa tải";redraw();break}
     status[i]="ok";s.note="Mở tool nhiệm vụ thiết kế để hoàn tất 4 bước";box.actions=(box.actions||"")+`<div style="margin-top:8px"><a class="btn sm" href="#/app/brief">→ Mở Render theo Nhiệm vụ</a></div>`;redraw();continue}
@@ -131,7 +145,7 @@ async function execSteps(steps,seedImg,J){
      break}
     emph=sc.fix||[];box.actions=(box.actions||"")+sc.html;s.note=`Lần ${a} loại – thử lại…`}
    if(!ok){status[i]="fail";s.note="Không có ảnh đạt – không trừ xu";redraw();break}
-   status[i]="ok";s.note=last.demo?"DEMO · 0 xu":`Đạt · −${unit()} xu`;redraw();
+   status[i]="ok";s.note=FREE()?`Đạt · Miễn phí · 0 xu${window.LAST_FREE_M?" · "+LAST_FREE_M:""}`:`Đạt · −${unit()} xu`;lastRes={img:out.img,mass:null};box.actions=(box.actions||"")+vidBtn();redraw();
   }catch(e){status[i]="fail";s.note=e.message;redraw();box.t+=(box.t?"\n":"")+"⚠ "+e.message;break}}
  redraw();save()}
 
@@ -139,13 +153,13 @@ async function send(){if(busy)return;const q=$("paT").value.trim();if(!q)return;
  PA.push({r:"u",t:q,raw:q,img:img?await shrink(img,320,.7):null});$("paT").value="";lastImg=null;if($("paPv"))$("paPv").hidden=true;draw();
  const ph={r:"a",t:"⏳ Đang phân tích yêu cầu…"};PA.push(ph);draw();
  try{const j=await plan(q,img);ph.t=j.reply||"Đã lập kế hoạch.";ph.raw=j.reply;ph.planHtml=planHtml(j.steps);draw();
-  await execSteps(j.steps,img,j);if(!/⚠/.test(ph.t||""))ph.t=(j.reply||"Hoàn tất.")+(isDemo()?"\n(DEMO)":"")}
- catch(e){ph.t="⚠ "+e.message}finally{busy=false;if($("paGo"))$("paGo").disabled=false;save();draw();try{const im=[...document.querySelectorAll("#paLog .agm:last-child img.result")].pop();if(im)im.scrollIntoView({block:"center"})}catch(_){}}}
+  await execSteps(j.steps,img,j);if(!/⚠/.test(ph.t||""))ph.t=(j.reply||"Hoàn tất.")+(FREE()?"\n(Gói Miễn phí · 0 xu)":"")}
+ catch(e){ph.t="⚠ "+e.message}finally{busy=false;try{if(window.PiFree)document.querySelectorAll(".tierbar").forEach(e=>e.outerHTML=PiFree.bar())}catch(_){}if($("paGo"))$("paGo").disabled=false;save();draw();try{const im=[...document.querySelectorAll("#paLog .agm:last-child img.result")].pop();if(im)im.scrollIntoView({block:"center"})}catch(_){}}}
 
 function ui(){wTool="agent";window.scrollTo(0,0);
  $("wbody").innerHTML=`<div class="paw"><div class="tt"><button class="ghost" onclick="location.hash='#/app/tab/ext'">← Quay lại</button><span class="sp"></span><button class="ghost sm" onclick="PA=[];localStorage.removeItem('piai_pa');ui()">🗑 Xóa hội thoại</button></div>
  <div class="heroA"><h2>🧠 Pi Agent</h2><p>Nói việc cần làm bằng tiếng Việt. Pi Agent lập kế hoạch, giao việc cho các công cụ trong app, tự kiểm ảnh và chỉ giao kết quả đạt.</p></div>
- ${isDemo()?`<div class="demo">⚠ Chế độ DEMO – chưa có API key. Kế hoạch và ảnh chỉ mô phỏng, có watermark, <b>không trừ xu</b>. Thêm Gemini/OpenAI key ở ⚙. Model ảnh Gemini free tier thường <b>limit 0</b> – cần bật Billing.</div>`:""}
+ ${window.PiFree?PiFree.bar():""}
  <div class="sug" ${PA.length?'style="display:none"':''} id="paSug">${["Nhà phố 5x20m 1 trệt 1 lửng 2 lầu sân thượng, hướng Tây, lam gỗ, hoàng hôn","Mặt cắt phối cảnh nhà phố 6,75x14,9m 1 trệt 1 lửng 2 lầu sân thượng, lõi cây Lộc Vừng 3,1x4m lùi về sau","Biệt thự 12x15m 3 tầng mái thái, giếng trời, nhìn góc 3/4","Khách sạn 5 tầng đế + 14 tầng tháp","Sửa ảnh: đổi mặt dựng thành đá travertine","Mở dự toán nhà 3 tầng"].map(x=>`<button class="chip" onclick="$('paT').value=this.textContent;PA_SEND()">${x}</button>`).join("")}</div>
  <div class="aglog" id="paLog"></div>
  <div class="agin"><button class="ib" title="Đính kèm ảnh" onclick="$('paF').click()">📎</button><input type="file" id="paF" accept="image/*" hidden><img id="paPv" hidden style="max-height:48px;border-radius:8px"><textarea id="paT" placeholder="Ví dụ: Nhà phố 6,75x14,9m, 1 trệt 1 lửng 2 lầu sân thượng, hướng Bắc, lõi cây Lộc Vừng, bông gió + lam gỗ…"></textarea><button class="btn" id="paGo" onclick="PA_SEND()">➤</button></div></div>`;
@@ -153,6 +167,7 @@ function ui(){wTool="agent";window.scrollTo(0,0);
  $("paT").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();PA_SEND()}};draw()}
 
 window.PA_SEND=()=>send();
+window.PA_VIDEO=()=>{if(busy)return;const t=$("paT");if(t){t.value="Làm video từ ảnh vừa rồi";send()}};
 window.PA_OPENBRIEF=()=>{if(lastBrief&&window.NB)NB.load(lastBrief)};
 window.PA_VIEW=k=>{if(busy||!lastBrief)return;const t=$("paT");if(t){t.value="Render "+(PiBrief.CAM_LABEL[k]||k).toLowerCase()+" cho công trình vừa rồi";VIEWREQ=k;send()}};let VIEWREQ=null;
 window.PA_UI=ui;
