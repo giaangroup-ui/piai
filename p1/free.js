@@ -36,11 +36,11 @@ function compact(p,{max=1800,noCode=false}={}){p=String(p||"");const L=p.split("
  let s=parts.join(" ").replace(/\s+/g," ");if(s.length>max)s=s.slice(0,max).replace(/\s\S*$/,"");return s}
 /* ===================== NGUỒN ẢNH ===================== */
 const HF={kontext:"https://black-forest-labs-flux-1-kontext-dev.hf.space",vl:"https://prithivmlmods-qwen3-vl-outpost.hf.space"};
-const hfDown=k=>+(S["piai_hfq_"+k]||0)>Date.now();const hfMark=k=>{S["piai_hfq_"+k]=Date.now()+6*3600e3};
+const hfDown=k=>+(S["piai_hfq_"+k]||0)>Date.now();const hfMark=(k,h=6)=>{S["piai_hfq_"+k]=Date.now()+h*3600e3};
 async function gradio(host,fn,data,ms){const r=await fetchT(`${host}/gradio_api/call/${fn}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data})},30000);
  if(!r.ok)throw new Error("HF "+r.status);const {event_id}=await r.json();const s=await fetchT(`${host}/gradio_api/call/${fn}/${event_id}`,{},ms);const t=await s.text();
  const ev=[...t.matchAll(/event: (\w+)\ndata: (.*)/g)];const last=ev[ev.length-1];if(!last)throw new Error("HF: không có phản hồi");
- if(last[1]==="error"){const m=String(last[2]||"");if(/ZeroGPU|quota|limit/i.test(m))throw Object.assign(new Error("HF hết lượt GPU miễn phí hôm nay"),{quota:1});throw new Error("HF lỗi: "+m.slice(0,120))}
+ if(last[1]==="error"){const m=String(last[2]||"");if(/ZeroGPU|quota|limit|null/i.test(m))throw Object.assign(new Error("HF hết lượt GPU miễn phí hôm nay"),{quota:1});throw new Error("HF lỗi: "+m.slice(0,120))}
  return JSON.parse(last[2])}
 async function hfUpload(host,dataUrl){const b=await url2blob(dataUrl);const fd=new FormData();fd.append("files",b,"in.jpg");const r=await fetchT(host+"/gradio_api/upload",{method:"POST",body:fd},40000);if(!r.ok)throw new Error("HF upload "+r.status);const [p]=await r.json();return {path:p,meta:{_type:"gradio.FileData"},orig_name:"in.jpg",mime_type:"image/jpeg"}}
 const SRC={
@@ -53,7 +53,7 @@ const SRC={
   ok:async img=>!!img&&!hfDown("kontext"),
   run:async(prompt,img)=>{try{const f=await hfUpload(HF.kontext,await fit(img,1024,.92));
    const out=await gradio(HF.kontext,"infer",[f,compact(prompt),Math.floor(Math.random()*1e6),false,2.5,24],170000);const o=out[0];const u=o&&(o.url||(o.path&&HF.kontext+"/gradio_api/file="+o.path));if(!u)throw new Error("HF: không có ảnh");
-   return {url:await fit(u,1600,.92),model:"FLUX.1-Kontext-dev (HF)",locked:true}}catch(e){if(e.quota)hfMark("kontext");throw e}}},
+   return {url:await fit(u,1600,.92),model:"FLUX.1-Kontext-dev (HF)",locked:true}}catch(e){hfMark("kontext",e.quota?6:.34);throw e}}},
  pollinations:{n:"Pollinations.ai (ẩn danh, ảnh ý tưởng – không khoá hình)",locked:false,
   ok:async()=>true,
   run:async(prompt,img,ratio,opt={})=>{const p=(opt.textPrompt||compact(prompt,{max:900,noCode:true})).slice(0,1100);const [w,h]=ratioWH(ratio,1024);let last;
@@ -79,7 +79,7 @@ async function check(sys,text,imgs){const errs=[];
  if(!hfDown("vl")){try{const comp=imgs.length>1?await composite(imgs[0],imgs[1]):await fit(imgs[0],1024,.88);
   const t=sys+"\nThe picture shows "+(imgs.length>1?"two images side by side: LEFT = IMAGE 1 (the render to inspect), RIGHT = IMAGE 2 (the massing reference). All bbox/horizon fractions refer to the LEFT image only (0 = its left/top edge, 1 = its right/bottom edge).":"IMAGE 1 only.")+"\n"+text+"\nReply with the JSON object only.";
   const out=await gradio(HF.vl,"run_router",["Qwen3-VL-8B-Instruct",t,comp.split(",")[1],700,.2,.9,40,1.05,60],120000);const s=String(out[0]||"");if(/^\[ERROR\]/.test(s))throw new Error(s.slice(0,100));window.LAST_FREE_CHECK="Qwen3-VL-8B (HF)";return s}
-  catch(e){if(e.quota)hfMark("vl");errs.push("HF Qwen3-VL: "+e.message)}}
+  catch(e){hfMark("vl",e.quota?6:.34);errs.push("HF Qwen3-VL: "+e.message)}}
  throw Object.assign(new Error("Chưa có nguồn AI chấm ảnh miễn phí lúc này ("+errs.join(" · ")+")"),{nocheck:1})}
 /* văn bản (không ảnh): Pollinations ẩn danh; có ảnh: dùng bộ kiểm thị giác */
 async function text(sys,t,img){if(img)return check(sys,t,[img]);
